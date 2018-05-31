@@ -1,0 +1,390 @@
+---
+title: "Hurricane Analysis and Visualization"
+author: "Udit Ennam"
+date: "April 30, 2018"
+output: slidy_presentation
+
+---
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+```{r}
+library(plyr)
+```
+
+## <span style="font-family:Times New Roman; text-align:center; font-size:0.8em;">Introduction</span>
+
+* <span style="font-family: Times New Roman; font-size:0.8em;">Hurricanes are one of the most deadliest natural disasters and highly unpredictable. </span>
+
+* <span style="font-family: Times New Roman; font-size:0.8em;">There are 7 Tropical cyclone basins in the world: North Atlantic, South Atlantic, North Indian, South Indian, East Pacific, South Pacific, West Pacific. </span>
+
+
+* <span style="font-family: Times New Roman; font-size:0.8em;">Goals of the project -</span>
+
+1. <span style="font-family: Times New Roman; font-size:0.8em;">Is there a link between the number of hurricanes and the time of the year?</span>
+
+2. <span style="font-family: Times New Roman; font-size:0.8em;">How frequent are the major hurricanes across different basins?</span>
+
+## <span style="font-family:Times New Roman; text-align:center; font-size:0.8em;">Datasets</span>
+
+* <span style="font-family: Times New Roman; font-size:0.8em;">Used National Oceanic and Atmospheric Administration (NOAA) to extract datasets of 7 recognized hurricane basins in the world.</span>
+
+* <span style="font-family: Times New Roman; font-size:0.8em;">Datasets Parent URL : ftp://eclipse.ncdc.noaa.gov/pub/ibtracs/v03r03/wmo/csv/basin/ </span>
+
+* <span style="font-family: Times New Roman; font-size:0.8em;">20 data fields taken into account to derive observations, analysis and make possible conclusions and visualizations.</span>
+
+
+```{r echo=FALSE}
+library(tidyverse)
+library(purrr)
+```
+
+```{r echo=FALSE}
+# load packages
+library(maps)
+library(ggplot2)
+library(dplyr)
+
+# NOAA url
+noaa = "ftp://eclipse.ncdc.noaa.gov/pub/ibtracs/v03r03/wmo/csv/basin/"
+
+# 7 basins
+basin = c("NA", "EP","NI","SA","SI","SP","WP")
+
+# read files from IBTrACS
+NA.basin = read.csv(paste(noaa, "Basin.", basin[1], ".ibtracs_wmo.v03r03.csv", sep = ""), skip = 1, stringsAsFactors = FALSE)
+EP.basin = read.csv(paste(noaa, "Basin.", basin[2], ".ibtracs_wmo.v03r03.csv", sep = ""), skip = 1, stringsAsFactors = FALSE)
+NI.basin = read.csv(paste(noaa, "Basin.", basin[3], ".ibtracs_wmo.v03r03.csv", sep = ""), skip = 1, stringsAsFactors = FALSE)
+SA.basin = read.csv(paste(noaa, "Basin.", basin[4], ".ibtracs_wmo.v03r03.csv", sep = ""), skip = 1, stringsAsFactors = FALSE)
+SI.basin = read.csv(paste(noaa, "Basin.", basin[5], ".ibtracs_wmo.v03r03.csv", sep = ""), skip = 1, stringsAsFactors = FALSE)
+SP.basin = read.csv(paste(noaa, "Basin.", basin[6], ".ibtracs_wmo.v03r03.csv", sep = ""), skip = 1, stringsAsFactors = FALSE)
+WP.basin = read.csv(paste(noaa, "Basin.", basin[7], ".ibtracs_wmo.v03r03.csv", sep = ""), skip = 1, stringsAsFactors = FALSE)
+
+
+
+NA.basin = NA.basin[-1, ]
+EP.basin = EP.basin[-1, ]
+NI.basin = NI.basin[-1, ]
+SA.basin = SA.basin[-1, ]
+SI.basin = SI.basin[-1, ]
+SP.basin = SP.basin[-1, ]
+WP.basin = WP.basin[-1, ]
+
+# column formatting
+NA.basin$Season = as.numeric(NA.basin$Season)
+NA.basin$Latitude = as.numeric(gsub("^ ", "", NA.basin$Latitude))
+NA.basin$Longitude = as.numeric(gsub("^ ", "", NA.basin$Longitude))
+NA.basin$Wind.WMO. = as.numeric(gsub("^ ", "", NA.basin$Wind.WMO.))
+NA.basin$Wind.WMO.mph = NA.basin$Wind.WMO.*1.150779
+
+
+EP.basin$Season = as.numeric(EP.basin$Season)
+EP.basin$Latitude = as.numeric(gsub("^ ", "", EP.basin$Latitude))
+EP.basin$Longitude = as.numeric(gsub("^ ", "", EP.basin$Longitude))
+EP.basin$Wind.WMO. = as.numeric(gsub("^ ", "", EP.basin$Wind.WMO.))
+EP.basin$Wind.WMO.mph = EP.basin$Wind.WMO.*1.150779
+
+
+NI.basin$Season = as.numeric(NI.basin$Season)
+NI.basin$Latitude = as.numeric(gsub("^ ", "", NI.basin$Latitude))
+NI.basin$Longitude = as.numeric(gsub("^ ", "", NI.basin$Longitude))
+NI.basin$Wind.WMO. = as.numeric(gsub("^ ", "", NI.basin$Wind.WMO.))
+NI.basin$Wind.WMO.mph = NI.basin$Wind.WMO.*1.150779
+
+
+SA.basin$Season = as.numeric(SA.basin$Season)
+SA.basin$Latitude = as.numeric(gsub("^ ", "", SA.basin$Latitude))
+SA.basin$Longitude = as.numeric(gsub("^ ", "", SA.basin$Longitude))
+SA.basin$Wind.WMO. = as.numeric(gsub("^ ", "", SA.basin$Wind.WMO.))
+SA.basin$Wind.WMO.mph = SA.basin$Wind.WMO.*1.150779
+
+SI.basin$Season = as.numeric(SI.basin$Season)
+SI.basin$Latitude = as.numeric(gsub("^ ", "", SI.basin$Latitude))
+SI.basin$Longitude = as.numeric(gsub("^ ", "", SI.basin$Longitude))
+SI.basin$Wind.WMO. = as.numeric(gsub("^ ", "", SI.basin$Wind.WMO.))
+SI.basin$Wind.WMO.mph = SI.basin$Wind.WMO.*1.150779
+
+
+SP.basin$Season = as.numeric(SP.basin$Season)
+SP.basin$Latitude = as.numeric(gsub("^ ", "", SP.basin$Latitude))
+SP.basin$Longitude = as.numeric(gsub("^ ", "", SP.basin$Longitude))
+SP.basin$Wind.WMO. = as.numeric(gsub("^ ", "", SP.basin$Wind.WMO.))
+SP.basin$Wind.WMO.mph = SP.basin$Wind.WMO.*1.150779
+
+
+WP.basin$Season = as.numeric(WP.basin$Season)
+WP.basin$Latitude = as.numeric(gsub("^ ", "", WP.basin$Latitude))
+WP.basin$Longitude = as.numeric(gsub("^ ", "", WP.basin$Longitude))
+WP.basin$Wind.WMO. = as.numeric(gsub("^ ", "", WP.basin$Wind.WMO.))
+WP.basin$Wind.WMO.mph = WP.basin$Wind.WMO.*1.150779
+
+# extract month for dataset NA.basin
+time.date = strsplit(NA.basin$ISO_time, " ")
+iso.date = unlist(lapply(time.date, function(x) x[1]))
+iso.month = substr(iso.date, 6, 7)
+NA.basin$Month = factor(iso.month, labels = c(month.name))
+
+# extract month for dataset EP.basin
+time.date = strsplit(EP.basin$ISO_time, " ")
+iso.date = unlist(lapply(time.date, function(x) x[1]))
+iso.month = substr(iso.date, 6, 7)
+EP.basin$Month = factor(iso.month, labels = c(month.name)[-4])
+
+# extract month for dataset NI.basin
+time.date = strsplit(NI.basin$ISO_time, " ")
+iso.date = unlist(lapply(time.date, function(x) x[1]))
+iso.month = substr(iso.date, 6, 7)
+NI.basin$Month = factor(iso.month, labels = c(month.name))
+
+# extract month for dataset SA.basin
+time.date = strsplit(SA.basin$ISO_time, " ")
+iso.date = unlist(lapply(time.date, function(x) x[1]))
+iso.month = substr(iso.date, 6, 7)
+SA.basin$Month = factor(iso.month, labels = "March")
+
+# extract month for dataset SI.basin
+time.date = strsplit(SI.basin$ISO_time, " ")
+iso.date = unlist(lapply(time.date, function(x) x[1]))
+iso.month = substr(iso.date, 6, 7)
+SI.basin$Month = factor(iso.month, labels = c(month.name))
+
+
+# extract month for dataset SP.basin
+time.date = strsplit(SP.basin$ISO_time, " ")
+iso.date = unlist(lapply(time.date, function(x) x[1]))
+iso.month = substr(iso.date, 6, 7)
+
+SP.basin$Month = factor(iso.month, labels = c(month.name)[1:9])
+
+
+# extract month for dataset WP.basin
+time.date = strsplit(WP.basin$ISO_time, " ")
+iso.date = unlist(lapply(time.date, function(x) x[1]))
+iso.month = substr(iso.date, 6, 7)
+WP.basin$Month = factor(iso.month, labels = c(month.name))
+
+# joining the data frames
+storms = rbind(NA.basin,EP.basin, NI.basin,SI.basin,WP.basin,SA.basin,SP.basin)
+```
+
+```{r echo=FALSE}
+require(plyr)
+storms$Basin.new <- mapvalues(storms$Basin, 
+          from=c(" EP"," NA"," NI"," SA"," SI"," SP"," WP"), 
+          to=c("East Pacific","North Atlantic","North Indian","South Atlantic","South Indian","South Pacific","West Pacific"))
+```
+
+## <span style="font-family:Times New Roman; text-align:center; font-size:0.8em;">Hurricane Categorization</span>
+
+* <span style="font-family: Times New Roman; font-size:0.8em;">Saffir-Simpson Scale is used to divide the hurricanes into 6 categories based on their wind speeds in miles per hour(mph)</span>
+
+```{r echo = FALSE}
+Category = c(0, 1, 2, 3, 4, 5) 
+library(kableExtra)
+Wind.Speed = c("Less Than 75 mph", "75 to 95 mph", "95 to 110 mph", "110 to 129 mph", "129 to 156 mph", "Greater Than 156 mph")
+df = data.frame(Category, Wind.Speed)  
+x_html <- knitr::kable(df, "html", align = c("c","c"))
+kable_styling(x_html, "striped", font_size = 12, full_width = FALSE)
+```
+
+```{r echo = FALSE}
+
+brk<-c(-Inf,74,95,110,129,156,+Inf)
+storms$cat<-cut(storms$Wind.WMO.mph,breaks=brk,include.lowest=T,include.highest=T,  labels=c(0,1,2,3,4,5))
+```
+
+## <span style="font-family:Times New Roman; text-align:center; font-size:0.8em;">Visualization of the number of hurricanes based on category</span>
+
+```{r echo=FALSE}
+
+storms_max_cat <- storms %>% filter(cat != 0) %>% group_by(Serial_Num) %>% summarise(max=max(as.numeric(cat)))
+strm_max_count <- storms_max_cat %>% group_by(max) %>% summarise(count = n())
+strm_max_count$max <- strm_max_count$max - 1
+
+saffir_simpson_colors <- c("#ffffcc","#ffe775","#ffc140","#ff8f20","#ff6060")
+ggplot(data=strm_max_count, aes(factor(max), count)) + 
+  geom_bar(stat="identity", fill = saffir_simpson_colors) +
+  xlab("Category of Hurricane") + ylab("Number of hurricanes") + geom_text(stat='Identity',aes(label=`count`), vjust = -0.6, size = 3)
+```
+
+
+## <span style="font-family:Times New Roman; text-align:center; font-size:0.8em;">Observation through Visualization</span>
+
+* <span style="font-family: Times New Roman; font-size:0.8em;">Timeline of the dataset: 1848-2010</span>
+
+```{r echo=FALSE}
+wm = maps::map("world", ".", exact = FALSE, plot = FALSE, fill = TRUE) %>% fortify()
+```
+
+```{r echo=FALSE}
+storms.nz <- storms %>% filter(cat != 0) # removing category 0
+substorms.nz = subset(storms.nz, Season %in% 1848:2010)
+nop.nz = which(substorms.nz$Name == "NOT NAMED") # checking for which hurricanes to NOT be displayed
+substorms.nz = substorms.nz[-nop.nz, ]
+
+substorms = subset(storms, Season %in% 1848:2010)
+nop = which(substorms$Name == "NOT NAMED")
+substorms = substorms[-nop, ]
+
+# add and ID with name and season
+substorms.nz$ID = as.factor(paste(substorms.nz$Name, substorms.nz$Season, 
+                               sep = "."))
+substorms$ID = as.factor(paste(substorms$Name, substorms$Season, sep = "."))
+
+# storm name as factor
+substorms.nz$Name = as.factor(substorms.nz$Name)
+substorms$Name = as.factor(substorms$Name)
+```
+
+```{r echo=FALSE}
+
+#labels <- c(' EP' = "East Pacific", ' NA' = "North Atlantic", ' NI' = 'North Indian', ' SA' = 'South Atlantic', ' SI' = 'South Indian', ' SP' = 'South Pacific', ' WP' = 'West Pacific')
+
+map_basins = ggplot(substorms.nz, aes(x=Longitude, y=Latitude, group=ID)) + 
+  geom_polygon(data = maps::map("world", ".", exact = FALSE, plot = FALSE, fill = TRUE) %>% 
+                 fortify(), aes(x=long,y=lat,group=group), fill="#39393a", color = "#d6ebfc", size = 0.2) + 
+  geom_path(data = substorms.nz,aes(group=Serial_Num, color = factor(cat)), alpha = 0.4, size=0.3) +
+  theme(axis.text.x = element_blank(), axis.text.y = element_blank(), 
+        axis.ticks = element_blank(), 
+        panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank()) + theme(panel.background = element_rect(fill = "#d6ebfc", colour = "#d6ebfc")) +
+  theme(strip.background = element_rect(fill = "white")) +
+  xlab(NULL) + ylab(NULL) + scale_colour_manual(values = c("#ffffcc","#ffe775","#ffc140","#ff8f20","#ff6060")) + 
+  guides(color=guide_legend(title="Category of Hurricane")) +
+  #facet_wrap(~Basin, labeller = labeller(Basin = labels)) 
+  facet_wrap(~Basin.new)
+# maps
+map_basins
+```
+
+* <span style="font-family: Times New Roman; font-size:0.8em;">North Atlantic, South Indian and the whole Pacific basin sees active hurricane occurrences.</span>
+
+* <span style="font-family: Times New Roman; font-size:0.8em;">But we do not know the exact number of hurricanes nor the time of the year during which such occurrences take place.</span>
+
+## <span style="font-family:Times New Roman; text-align:center; font-size:0.8em;">Distribution of hurricanes across the 7 basins</span>
+
+```{r echo=FALSE}
+storms_cat_basin <- storms.nz %>% group_by(Serial_Num, Basin.new) %>% summarise(category = max(as.numeric(cat)))
+storms_cat_basin$category.new <- storms_cat_basin$category - 1
+storms_cat_basin_lst <- storms_cat_basin %>% group_by(Basin.new, category.new) %>% summarise(count = n())
+ggplot(data = storms_cat_basin_lst, aes(Basin.new, count)) + geom_bar(stat= "identity", aes(fill = category.new)) + xlab('Name of the Tropical Basin') + theme_bw() +
+ylab('Number of hurricanes [Category-wise]') + theme(axis.text.x = element_text(angle = 90, vjust = 0.5)) +
+guides(fill=guide_legend(title="Category of Hurricane"))
+
+```
+
+* <span style="font-family: Times New Roman; font-size:0.8em;">South Atlantic Basin is least active for hurricanes, while North Atlantic is the most active, with Major hurricanes (Categories 3,4,5) amounting to about 40% of the overall hurricanes in the Basin.</span>
+
+* <span style="font-family: Times New Roman; font-size:0.8em;">Adding Category 0 Hurricanes to the plot</span>
+
+```{r echo=FALSE}
+storms_cat_basin <- storms %>% group_by(Serial_Num, Basin.new) %>% summarise(category = max(as.numeric(cat)))
+storms_cat_basin$category.new <- storms_cat_basin$category - 1
+storms_cat_basin_lst <- storms_cat_basin %>% group_by(Basin.new, category.new) %>% summarise(count = n())
+ggplot(data = storms_cat_basin_lst, aes(Basin.new, count)) + geom_bar(stat= "identity", aes(fill = category.new)) + xlab('Basin') + 
+ylab('Number of hurricanes [Category-wise]') + theme_bw() + theme(axis.text.x = element_text(angle = 90, vjust = 0.5)) +
+guides(fill=guide_legend(title="Category of Hurricane")) 
+```
+
+* <span style="font-family: Times New Roman; font-size:0.8em;">South Indian Basin has the most number of Category 0 hurricane occurrences, which can later turn into higher category hurricanes, or higher category hurricanes may become less intense due to dry air, cooler land surfaces etc.</span>
+
+## <span style="font-family:Times New Roman; text-align:center; font-size:0.8em;">Distribution of hurricanes around the United States of America</span>
+
+* <span style="font-family: Times New Roman; font-size:0.8em;">We consider Hurricane Categories 1-5.</span>
+
+```{r echo=FALSE}
+map_usa = ggplot(substorms.nz, aes(x=Longitude, y=Latitude, group=ID)) + 
+  geom_polygon(data = maps::map("world", ".", exact = FALSE, plot = FALSE, fill = TRUE) %>% 
+                 fortify(), aes(x=long,y=lat,group=group), fill="#39393a", color = "#d6ebfc", size = 0.2) + 
+  geom_path(data = substorms.nz,aes(group=ID, color = cat), alpha = 0.4, size=0.3) + xlim(-150, -10) + ylim(0, 70) +
+  theme(axis.text.x = element_blank(), axis.text.y = element_blank(), axis.ticks = element_blank(), panel.grid.major = element_blank(), panel.grid.minor = element_blank()) + xlab(NULL) + ylab(NULL)  + theme(panel.background = element_rect(fill = "#d6ebfc", colour = "#d6ebfc")) + scale_colour_manual(values = c("#ffffcc","#ffe775","#ffc140","#ff8f20","#ff6060")) + 
+  guides(color=guide_legend(title="Category of Hurricane")) + ggtitle("Hurricane occurrences affecting the United States of America") 
+
+map_usa
+```
+
+## <span style="font-family:Times New Roman; text-align:center; font-size:0.8em;">Observation of hurricanes across each month</span>
+
+```{r echo = FALSE}
+map3 = ggplot(substorms.nz, aes(x=Longitude, y=Latitude, group=ID)) + geom_polygon(data = maps::map("world", ".", exact = FALSE, plot = FALSE, fill = TRUE) %>% fortify(), aes(x=long,y=lat,group=group), fill="#39393a", color = "#d6ebfc", size = 0.2) + geom_path(data = substorms.nz,aes(group=Serial_Num, color = cat), alpha = 0.4, size=0.3) + xlim(-150, -10) + ylim(0, 70) +
+  theme(axis.text.x = element_blank(), axis.text.y = element_blank(), axis.ticks = element_blank(), panel.grid.major = element_blank(), panel.grid.minor = element_blank()) + theme(panel.background = element_rect(fill = "#d6ebfc", colour = "#d6ebfc")) + xlab(NULL) + ylab(NULL) + scale_colour_manual(values = c("#ffffcc","#ffe775","#ffc140","#ff8f20","#ff6060")) + theme(strip.background = element_rect(fill = "white")) + facet_wrap(~Month) + guides(color=guide_legend(title="Category of Hurricane"))
+map3
+```
+
+* <span style="font-family: Times New Roman; font-size:0.8em;">Hurricane occurrences are frequent in the second half of the year from June to December, peaking during the months of August, September and October, around the United States.</span>
+
+* <span style="font-family: Times New Roman; font-size:0.8em;">However, this does not give us the complete picture, that is, there might be other basins which are highly active during the earlier months.</span>
+
+## <span style="font-family:Times New Roman; text-align:center; font-size:0.8em;">Number of hurricanes during each month from 1848 to 2010</span>
+
+```{r echo=FALSE}
+storms_cat_month <- substorms.nz %>% group_by(Serial_Num, Month, Basin.new) %>% summarise(category = max(as.numeric(cat)))
+storms_cat_month$category.new <- storms_cat_month$category - 1
+storms_cat_month_lst <- storms_cat_month %>% group_by(Month, category.new) %>% summarise(count = n())
+ggplot(data = storms_cat_month_lst, aes(Month, count)) + geom_bar(stat= "identity", aes(fill = category.new)) + xlab('Month of a year') + 
+ylab('Number of hurricanes [Category-wise]') + theme_bw() + theme(axis.text.x = element_text(angle = 90, vjust = 0.5)) +
+guides(fill=guide_legend(title="Category of Hurricane"))
+```
+
+* <span style="font-family: Times New Roman; font-size:0.8em;">As we observed in the facet plots, the numbers here provide proof that hurricane occurrences peak during August, September and October.</span>
+
+* <span style="font-family: Times New Roman; font-size:0.8em;">All the tropical basins have been taken into account.</span>
+
+
+```{r echo=FALSE}
+map4 = ggplot(substorms.nz, aes(x=Longitude, y=Latitude, group=ID)) + geom_polygon(data = maps::map("world", ".", exact = FALSE, plot = FALSE, fill = TRUE) %>% fortify(), aes(x=long,y=lat,group=group), fill="#39393a", color = "#d6ebfc", size = 0.2) + geom_path(data = substorms.nz,aes(group=Serial_Num, color = cat), alpha = 0.4, size=0.3) + 
+  theme(axis.text.x = element_blank(), axis.text.y = element_blank(), axis.ticks = element_blank(), panel.grid.major = element_blank(), panel.grid.minor = element_blank()) + theme(panel.background = element_rect(fill = "#d6ebfc", colour = "#d6ebfc")) + xlab(NULL) + ylab(NULL) + scale_colour_manual(values = c("#ffffcc","#ffe775","#ffc140","#ff8f20","#ff6060")) + theme(strip.background = element_rect(fill = "white")) + facet_wrap(~Month, scales = "free") + guides(color=guide_legend(title="Category of Hurricane"))
+map4
+```
+
+* <span style="font-family: Times New Roman; font-size:0.8em;">When you plot the world map for each month and check the hurricane occurrences, we can see that, January To March sees a lot of hurricane activity in the Southern Hemisphere, precisely, the southern tropical cyclone basins.</span>
+
+* <span style="font-family: Times New Roman; font-size:0.8em;">As April cometh, hurricane activities start surfacing in the Northern Hemisphere, continuing into May and June.</span>
+
+* <span style="font-family: Times New Roman; font-size:0.8em;">Later on, the hurricane occurrences become stronger and frequent in the Northern Hemisphere, with only a few exceptions in the South.</span>
+
+## <span style="font-family:Times New Roman; text-align:center; font-size:0.8em;">Is there a link between the hurricane occurrences and month of the year?</span>
+
+* <span style="font-family: Times New Roman; font-size:0.8em;">The Atlantic Hurricane Season is from 1st June to 30th November, with major ones peaking from late September to early November.</span>
+
+* <span style="font-family: Times New Roman; font-size:0.8em;">We now know why - as over 90% of the tropical cyclones in the Atlantic basin occur during this period.</span>
+
+* <span style="font-family: Times New Roman; font-size:0.8em;">Hurricanes occur when the oceans have been warmed during the summer months - from June 1st to August 31st.</span> 
+
+* <span style="font-family: Times New Roman; font-size:0.8em;">The North Atlantic Basin, therefore sees a lot of activity during September and October.</span>
+
+* <span style="font-family: Times New Roman; font-size:0.8em;">YES, there definitely is a link with a few anomalies.</span>
+
+## <span style="font-family:Times New Roman; text-align:center; font-size:0.8em;">Is there a link between the time of the year and the activity in a tropical cyclone basin?</span>
+
+```{r echo=FALSE}
+storms_cat_month <- substorms.nz %>% group_by(Serial_Num, Month, Basin.new) %>% summarise(category = max(as.numeric(cat)))
+storms_cat_month$category.new <- storms_cat_month$category - 1
+storms_cat_month_lst <- storms_cat_month %>% group_by(Month, category.new, Basin.new) %>% summarise(count = n())
+ggplot(data = storms_cat_month_lst, aes(Month, count)) + geom_bar(stat= "identity", aes(fill = Basin.new)) + xlab('Time of a year') + 
+ylab('Number of hurricanes [Based on the Basin]') +theme_bw() + theme(axis.text.x = element_text(angle = 90, vjust = 0.5)) +
+guides(fill=guide_legend(title="Category of Hurricane")) 
+```
+
+* <span style="font-family: Times New Roman; font-size:0.8em;">North Atlantic, as we know, proves the official season from June to November.</span>
+
+* <span style="font-family: Times New Roman; font-size:0.8em;">Most active basins during the second half of the year are: East Pacific, North Atlantic and West Pacific.</span>
+
+* <span style="font-family: Times New Roman; font-size:0.8em;">Active basins during the first half of the year are: South Indian and South Pacific.</span>
+
+* <span style="font-family: Times New Roman; font-size:0.8em;">YES, there definitely seems to be a link between the basin activity and the time of the year Southern basins active during the first half and the northern, central basins active during the second half of a year.</span>
+
+## <span style="font-family:Times New Roman; text-align:center; font-size:0.8em;">Conclusion</span>
+
+* <span style="font-family: Times New Roman; font-size:0.8em;">North Atlantic basin is the most active and cause for major damages through the months of June to November.</span>
+
+* <span style="font-family: Times New Roman; font-size:0.8em;">South Indian and South Pacific are active basins during the first six months of a calendar year.</span>
+
+* <span style="font-family: Times New Roman; font-size:0.8em;">There are definitely links between the number of hurricanes and the time of the year, with the tropical cyclone basins adding their significance.</span>
+
+* <span style="font-family: Times New Roman; font-size:0.8em;">This could help in alerting and taking measures to spread awareness among people living in the most likely and highly affected areas in the tropical basins, during the different times of a year.</span>
+
+* <span style="font-family: Times New Roman; font-size:0.8em;">Further steps can be taken to check if global warming has had any effect on the number of major hurricanes occurrences during 2000-2010.</span>
+
+## <span style="font-family:Times New Roman; text-align:center; font-size:0.8em;">Thank You!</span>
